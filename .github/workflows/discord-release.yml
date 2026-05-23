@@ -1,0 +1,39 @@
+name: Discord Release Notification
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, urllib.request
+
+          webhook = os.environ['WEBHOOK_URL']
+          tag   = "${{ github.event.release.tag_name }}"
+          url   = "${{ github.event.release.html_url }}"
+          notes = ${{ toJSON(github.event.release.body) }}
+
+          payload = json.dumps({
+              "embeds": [{
+                  "title": f"\U0001f3c1 SimWorks Plugin {tag}",
+                  "description": notes,
+                  "url": url,
+                  "color": 0x546a78,
+                  "footer": {"text": "SimWorks Plugin  •  simworks.uk"}
+              }]
+          })
+
+          req = urllib.request.Request(
+              webhook,
+              payload.encode(),
+              {"Content-Type": "application/json", "User-Agent": "SimWorksBot"}
+          )
+          print("Status:", urllib.request.urlopen(req).getcode())
+          EOF
